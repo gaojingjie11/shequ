@@ -1,0 +1,29 @@
+
+services:
+  # MySQL 数据库
+  mysql8:
+    image: mysql:8.0.29
+    restart: always
+    container_name: sc_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: smart_community
+      MYSQL_TZ: Asia/Shanghai
+    ports:
+      - "13306:3306"
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+      # 如果你有初始化sql脚本，可以挂载到这里自动执行
+      # - ./docs/smart_community.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+
+
+  # Redis 缓存
+  redis:
+    image: 'bitnami/redis:7.2'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - '6379:6379'
+  # Go 后端应用
+

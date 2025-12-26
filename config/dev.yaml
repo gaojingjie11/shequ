@@ -1,0 +1,8 @@
+db:
+  # 注意：如果是本地运行 go run main.go，用 localhost
+  # 如果是 Docker 运行，这里可能需要改成 service name 或者宿主机 IP
+  dsn: "root:root@tcp(localhost:13306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "localhost:6379"
+

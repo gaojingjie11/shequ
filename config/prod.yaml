@@ -1,0 +1,7 @@
+db:
+  # 注意：在 docker-compose 网络中，主机名通常是服务名，例如 "mysql"
+  dsn: "root:root@tcp(mysql:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  # 同理，使用 redis 服务名
+  addr: "redis:6379"
