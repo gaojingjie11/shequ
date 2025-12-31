@@ -21,6 +21,7 @@ type RegisterRequest struct {
 	Gender   int    `json:"gender"`
 	Username string `json:"username"`
 	Avatar   string `json:"avatar"`
+	Email    string `json:"email"` // 新增
 }
 
 // Register 处理注册请求
@@ -42,6 +43,12 @@ func (h *UserHandler) Register(c *gin.Context) {
 	}
 
 	// 3. 将请求结构体(DTO) 转换为 数据库模型(Model)
+	// Default Avatar
+	defaultAvatar := "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
+	if req.Avatar == "" {
+		req.Avatar = defaultAvatar
+	}
+
 	user := model.SysUser{
 		Mobile:   req.Mobile,
 		Password: req.Password, // 这里接收到了明文密码，Service层会加密
@@ -50,6 +57,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		Gender:   req.Gender,
 		Username: req.Username,
 		Avatar:   req.Avatar,
+		Email:    req.Email,
 	}
 
 	// 4. 调用业务逻辑
@@ -75,8 +83,12 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// 获取 IP 和 UserAgent
+	ip := c.ClientIP()
+	ua := c.Request.UserAgent()
+
 	// 2. 调用业务逻辑
-	token, user, err := h.Service.Login(req.Mobile, req.Password)
+	token, user, err := h.Service.Login(req.Mobile, req.Password, ip, ua)
 	if err != nil {
 		// 登录失败通常报 400 或 401
 		response.Fail(c, err.Error())
@@ -88,4 +100,77 @@ func (h *UserHandler) Login(c *gin.Context) {
 		"token":     token,
 		"user_info": user, // 包含头像、余额等信息
 	})
+}
+
+// Update 修改资料
+func (h *UserHandler) Update(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	// 使用 map 接收，支持部分更新
+	var req map[string]interface{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, "参数错误")
+		return
+	}
+
+	// 过滤允许更新的字段，防止恶意更新余额等
+	allowed := []string{"avatar", "real_name", "gender", "email", "mobile", "age", "username"}
+	updates := make(map[string]interface{})
+	for _, field := range allowed {
+		if val, ok := req[field]; ok {
+			updates[field] = val
+		}
+	}
+
+	if err := h.Service.UpdateInfo(userID.(int64), updates); err != nil {
+		response.Fail(c, "修改失败: "+err.Error())
+		return
+	}
+	response.Success(c, nil)
+}
+
+// ChangePassword 修改密码
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	var req struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, "参数错误")
+		return
+	}
+	if err := h.Service.ChangePassword(userID.(int64), req.OldPassword, req.NewPassword); err != nil {
+		response.Fail(c, err.Error())
+		return
+	}
+	response.Success(c, nil)
+}
+
+// ForgetPassword 忘记密码
+func (h *UserHandler) ForgetPassword(c *gin.Context) {
+	var req struct {
+		Mobile      string `json:"mobile"`
+		Code        string `json:"code"` // 验证码
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, "参数错误")
+		return
+	}
+	if err := h.Service.ResetPassword(req.Mobile, req.Code, req.NewPassword); err != nil {
+		response.Fail(c, err.Error())
+		return
+	}
+	response.Success(c, nil)
+}
+
+// Info 获取个人信息
+func (h *UserHandler) Info(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	user, err := h.Service.GetInfo(userID.(int64))
+	if err != nil {
+		response.Fail(c, "获取失败")
+		return
+	}
+	response.Success(c, user)
 }

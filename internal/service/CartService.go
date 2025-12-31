@@ -10,6 +10,9 @@ type CartService struct{}
 
 // AddCart 添加商品到购物车
 func (s *CartService) AddCart(userID, productID int64, num int) error {
+	if num <= 0 {
+		return errors.New("商品数量必须大于0")
+	}
 	// 1. 检查商品是否存在
 	var product model.Product
 	if err := global.DB.First(&product, productID).Error; err != nil {
@@ -46,4 +49,23 @@ func (s *CartService) GetCartList(userID int64) ([]model.Cart, error) {
 // DeleteCart 删除购物车项
 func (s *CartService) DeleteCart(userID, cartID int64) error {
 	return global.DB.Where("user_id = ? AND id = ?", userID, cartID).Delete(&model.Cart{}).Error
+}
+
+// UpdateQuantity 修改购物车数量
+func (s *CartService) UpdateQuantity(userID, cartID int64, quantity int) error {
+	if quantity <= 0 {
+		return errors.New("数量必须大于0")
+	}
+	// 更新指定用户的指定购物车记录
+	result := global.DB.Model(&model.Cart{}).
+		Where("user_id = ? AND id = ?", userID, cartID).
+		Update("quantity", quantity)
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("购物车记录不存在")
+	}
+	return nil
 }

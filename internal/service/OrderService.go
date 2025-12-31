@@ -12,15 +12,29 @@ import (
 
 type OrderService struct{}
 
+// 定义入参结构 (如果 controller 已经定义，建议放到 model 层共享，或者这里重新定义一个)
+type CartItemRequest struct {
+	CartID   int64
+	Quantity int
+}
+
 // CreateOrder 下单逻辑
 // cartIDs: 用户勾选的购物车记录ID列表
-func (s *OrderService) CreateOrder(userID int64, storeID int64, cartIDs []int64) (*model.Order, error) {
-	// 返回的数据
+func (s *OrderService) CreateOrder(userID int64, storeID int64, items []model.CartItemParam) (*model.Order, error) { // 假设你在 model 里加了这个结构
 	var order *model.Order
 
-	// 开启数据库事务
 	err := global.DB.Transaction(func(tx *gorm.DB) error {
-		// 1. 查询用户勾选的购物车商品
+		// 1. 提取 ID 列表用于查询数据库
+		var cartIDs []int64
+		// 同时建立一个 map 方便后续查找前端传的数量
+		qtyMap := make(map[int64]int)
+
+		for _, item := range items {
+			cartIDs = append(cartIDs, item.CartID)
+			qtyMap[item.CartID] = item.Quantity // 记录前端传的数量
+		}
+
+		// 2. 查询购物车记录 (此时查出来的是数据库里的旧数量)
 		var cartList []model.Cart
 		if err := tx.Preload("Product").Where("id IN ? AND user_id = ?", cartIDs, userID).Find(&cartList).Error; err != nil {
 			return err
@@ -29,18 +43,28 @@ func (s *OrderService) CreateOrder(userID int64, storeID int64, cartIDs []int64)
 			return errors.New("请选择要购买的商品")
 		}
 
-		// 2. 准备订单数据
-		orderNo := fmt.Sprintf("%d%d", time.Now().UnixNano(), userID) // 简单生成唯一订单号
+		// ... 准备数据 ...
+		orderNo := fmt.Sprintf("%d%d", time.Now().UnixNano(), userID)
 		totalAmount := 0.0
 		var orderItems []model.OrderItem
 
-		// 3. 遍历购物车，处理库存和计算金额
+		// 3. 遍历购物车
 		for _, cart := range cartList {
-			// 校验库存并扣减 (乐观锁：利用 SQL 的原子性)
-			// UPDATE pms_product SET stock = stock - ? WHERE id = ? AND stock >= ?
+			// --- 【关键修改】 ---
+			// 使用前端传来的数量覆盖数据库查询出的数量
+			finalQty := cart.Quantity
+			if q, ok := qtyMap[cart.ID]; ok && q > 0 {
+				finalQty = q
+			}
+			// ------------------
+
+			// 校验库存 (使用 finalQty)
 			result := tx.Model(&model.Product{}).
-				Where("id = ? AND stock >= ?", cart.ProductID, cart.Quantity).
-				UpdateColumn("stock", gorm.Expr("stock - ?", cart.Quantity))
+				Where("id = ? AND stock >= ?", cart.ProductID, finalQty).
+				Updates(map[string]interface{}{
+					"stock": gorm.Expr("stock - ?", finalQty),
+					"sales": gorm.Expr("sales + ?", finalQty),
+				})
 
 			if result.Error != nil {
 				return result.Error
@@ -49,38 +73,36 @@ func (s *OrderService) CreateOrder(userID int64, storeID int64, cartIDs []int64)
 				return fmt.Errorf("商品[%s]库存不足", cart.Product.Name)
 			}
 
-			// 累加总金额
-			itemTotal := cart.Product.Price * float64(cart.Quantity)
+			// 计算金额 (使用 finalQty)
+			itemTotal := cart.Product.Price * float64(finalQty)
 			totalAmount += itemTotal
 
-			// 构建订单明细
 			orderItems = append(orderItems, model.OrderItem{
 				ProductID: cart.ProductID,
-				Price:     cart.Product.Price, // 锁定当前价格
-				Quantity:  cart.Quantity,
+				Price:     cart.Product.Price,
+				Quantity:  finalQty, // 存入订单的是最新数量
 			})
 		}
 
-		// 4. 创建订单主表记录
+		// 4. 创建订单 (记得加上 StoreID)
 		order = &model.Order{
 			OrderNo:     orderNo,
 			UserID:      userID,
+			StoreID:     storeID,
 			TotalAmount: totalAmount,
-			Status:      0, // 待付款
-
-			Items:     orderItems, // GORM 会自动创建关联的 Items
-			CreatedAt: time.Now(),
+			Status:      0,
+			Items:       orderItems,
+			CreatedAt:   time.Now(),
 		}
 		if err := tx.Create(order).Error; err != nil {
 			return err
 		}
 
-		// 5. 清除购物车中已购买的商品
+		// 5. 删除购物车 (按 ID 删除)
 		if err := tx.Delete(&model.Cart{}, cartIDs).Error; err != nil {
 			return err
 		}
 
-		// 返回 nil 提交事务
 		return nil
 	})
 
@@ -88,15 +110,25 @@ func (s *OrderService) CreateOrder(userID int64, storeID int64, cartIDs []int64)
 }
 
 // GetList 获取用户订单列表
-func (s *OrderService) GetList(userID int64) ([]model.Order, error) {
+func (s *OrderService) GetList(userID int64, status *int, page, size int) ([]model.Order, int64, error) {
 	var list []model.Order
+	var total int64
+
 	// Preload("Items.Product") 会自动加载：订单 -> 明细 -> 商品信息
-	// 这样前端可以直接显示买的是什么
-	err := global.DB.Preload("Items.Product").
-		Where("user_id = ?", userID).
-		Order("created_at desc"). // 按时间倒序
+	db := global.DB.Model(&model.Order{}).Where("user_id = ?", userID)
+
+	if status != nil {
+		db = db.Where("status = ?", *status)
+	}
+
+	db.Count(&total)
+
+	offset := (page - 1) * size
+	err := db.Preload("Items.Product").Preload("Store").
+		Order("created_at desc").
+		Offset(offset).Limit(size).
 		Find(&list).Error
-	return list, err
+	return list, total, err
 }
 
 // PayOrder 支付订单 (核心逻辑)
@@ -128,17 +160,85 @@ func (s *OrderService) PayOrder(userID int64, orderID int64) error {
 		}
 
 		// 5. 扣减余额 (更新 sys_user)
-		// UPDATE sys_user SET balance = balance - ? WHERE id = ?
 		if err := tx.Model(&user).Update("balance", gorm.Expr("balance - ?", order.TotalAmount)).Error; err != nil {
 			return err
 		}
 
-		// 6. 更新订单状态为已完成 (假设 1 代表已支付/已完成)
-		// 如果你之前的表结构里删了 pay_time，这里就不更新 pay_time 了
+		// 6. 更新订单状态为已支付(待发货)
 		if err := tx.Model(&order).Update("status", 1).Error; err != nil {
+			return err
+		}
+
+		// 7. 写入 sys_transaction 流水表 (新增)
+		transaction := model.SysTransaction{
+			UserID:    userID,
+			Type:      1,                  // 1: 商城订单
+			Amount:    -order.TotalAmount, // 记录支出金额 (负数)
+			RelatedID: order.ID,
+			Remark:    fmt.Sprintf("支付商城订单-%s", order.OrderNo),
+			CreatedAt: time.Now(),
+		}
+		if err := tx.Create(&transaction).Error; err != nil {
 			return err
 		}
 
 		return nil
 	})
+}
+
+// ShipOrder 发货 (管理员)
+func (s *OrderService) ShipOrder(orderID int64) error {
+	// 更新条件：必须是已支付(1)状态
+	result := global.DB.Model(&model.Order{}).
+		Where("id = ? AND status = 1", orderID).
+		Update("status", 2) // 2: 已发货
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("订单状态不正确(需为已支付)或订单不存在")
+	}
+	return nil
+}
+
+// ReceiveOrder 确认收货 (用户)
+func (s *OrderService) ReceiveOrder(userID, orderID int64) error {
+	// 更新条件：必须是已发货(2)状态，且属于该用户
+	result := global.DB.Model(&model.Order{}).
+		Where("id = ? AND user_id = ? AND status = 2", orderID, userID).
+		Update("status", 3) // 3: 已完成
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("订单状态不正确或无权操作")
+	}
+	return nil
+}
+
+// ListAllOrders 管理员查看所有订单 (Admin)
+func (s *OrderService) ListAllOrders(page, size int) ([]model.Order, int64, error) {
+	var list []model.Order
+	var total int64
+
+	tx := global.DB.Model(&model.Order{})
+	tx.Count(&total)
+
+	// Preload 加载关联的商品信息，方便管理端查看
+	offset := (page - 1) * size
+	err := tx.Preload("Items").Preload("Items.Product").
+		Order("id desc").Offset(offset).Limit(size).Find(&list).Error
+	return list, total, err
+}
+
+// CancelOrder 取消订单 (用户取消 or 管理员作废)
+func (s *OrderService) CancelOrder(userID, id int64, isAdmin bool) error {
+	db := global.DB.Model(&model.Order{})
+	if !isAdmin {
+		db = db.Where("user_id = ?", userID)
+	}
+	// 只能取消待支付(0)的订单 (修正: 原代码有的10可能是typo，现只允许取消未支付订单)
+	return db.Where("id = ? AND status = ?", id, 0).Update("status", 40).Error // 40:已取消
 }

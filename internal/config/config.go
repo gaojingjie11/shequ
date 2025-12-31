@@ -13,6 +13,7 @@ var Conf *Config
 type Config struct {
 	DB    DBConfig    `mapstructure:"db"`
 	Redis RedisConfig `mapstructure:"redis"`
+	MinIO MinIOConfig `mapstructure:"minio"` // 新增
 }
 
 type DBConfig struct {
@@ -21,6 +22,15 @@ type DBConfig struct {
 
 type RedisConfig struct {
 	Addr string `mapstructure:"addr"`
+}
+
+// 新增 MinIO 配置结构
+type MinIOConfig struct {
+	Endpoint  string `mapstructure:"endpoint"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
+	Bucket    string `mapstructure:"bucket"`
+	UseSSL    bool   `mapstructure:"use_ssl"`
 }
 
 // Init 初始化配置
@@ -47,6 +57,9 @@ func Init(env string) {
 	if err := viper.Unmarshal(&Conf); err != nil {
 		log.Fatalf("配置解析失败: %v", err)
 	}
-
+	if err := viper.Unmarshal(&Conf); err != nil {
+		log.Fatalf("配置解析失败: %v", err)
+	}
+	log.Println("配置加载成功")
 	log.Println("配置加载成功")
 }

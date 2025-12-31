@@ -15,6 +15,12 @@ type Cart struct {
 	Product Product `gorm:"foreignKey:ProductID" json:"product"`
 }
 
+// internal/model/cart.go
+type CartItemParam struct {
+	CartID   int64 `json:"cart_id"`
+	Quantity int   `json:"quantity"`
+}
+
 func (Cart) TableName() string {
 	return "oms_cart"
 }

@@ -51,3 +51,32 @@ func (h *RepairHandler) List(c *gin.Context) {
 	}
 	response.Success(c, list)
 }
+
+// Process 处理报修 (Admin)
+func (h *RepairHandler) Process(c *gin.Context) {
+	var req struct {
+		ID       int64  `json:"id"`
+		Status   int    `json:"status"`   // 1或2
+		Feedback string `json:"feedback"` // 例如 "维修工李四已上门修复"
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, "参数错误")
+		return
+	}
+
+	if err := h.Service.UpdateStatus(req.ID, req.Status, req.Feedback); err != nil {
+		response.Fail(c, "操作失败")
+		return
+	}
+	response.Success(c, nil)
+}
+
+// ListAll 管理员列表
+func (h *RepairHandler) ListAll(c *gin.Context) {
+	list, err := h.Service.GetAllList(100)
+	if err != nil {
+		response.Fail(c, "获取失败")
+		return
+	}
+	response.Success(c, list)
+}
