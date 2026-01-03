@@ -2,15 +2,15 @@ server:
   port: "8081" # 生产环境容器内运行在 8081
 
 db:
-  # 用户要求这里的配置必须使用 公网IP
-  dsn: "root:123456@tcp(43.138.85.114:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
+  # Host网络模式下，127.0.0.1 就是宿主机
+  dsn: "root:123456@tcp(127.0.0.1:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
 
 redis:
-  # 用户要求这里的配置必须使用 公网IP
-  addr: "43.138.85.114:6379"
+  # Host网络模式下，127.0.0.1 就是宿主机
+  addr: "127.0.0.1:6379"
 
 minio:
-  endpoint: "43.138.85.114:9000"           # 公网IP
+  endpoint: "43.138.85.114:9000"           # MinIO 必须保持公网IP供前端访问
   access_key: "minioadmin"
   secret_key: "minioadmin123"
   bucket: "community"
