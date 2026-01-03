@@ -44,6 +44,9 @@ func InitRouter(r *gin.Engine) {
 
 		// --- 【新增】商品分类 ---
 		apiGroup.GET("/categories", productHandler.GetCategories)
+
+		// --- 【新增】数据大屏 ---
+		apiGroup.GET("/dashboard/stats", adminHandler.GetDashboardStats)
 	}
 
 	// 2. 私有接口 (Private - 需要登录)

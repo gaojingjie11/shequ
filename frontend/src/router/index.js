@@ -6,6 +6,12 @@ const routes = [
         path: '/',
         redirect: '/home'
     },
+    {
+        path: '/data',
+        name: 'DataScreen',
+        component: () => import('@/views/admin/DataScreen.vue'),
+        meta: { requiresAuth: false }
+    },
 
     {
         path: '/login',

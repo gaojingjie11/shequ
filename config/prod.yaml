@@ -1,13 +1,13 @@
 db:
-  # 线上数据库地址，如果是 docker-compose 部署，可以使用 service name (如 mysql)
-  dsn: "root:123456@tcp(43.138.85.114:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
+  # 线上数据库地址 (如果后端和数据库在同一台机器，建议用 127.0.0.1 避免防火墙问题)
+  dsn: "root:123456@tcp(127.0.0.1:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
 
 redis:
   # 线上 Redis 地址
-  addr: "43.138.85.114:6379"
+  addr: "127.0.0.1:6379"
 
 minio:
-  endpoint: "43.138.85.114:9000"           # 线上 MinIO 地址
+  endpoint: "127.0.0.1:9000"           # 线上 MinIO 地址
   access_key: "minioadmin"         # 生产环境请修改强密码
   secret_key: "minioadmin123"      # 生产环境请修改强密码
   bucket: "community"

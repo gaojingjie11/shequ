@@ -1,5 +1,5 @@
 # 构建阶段：编译Go代码
-FROM golang:1.20-alpine AS builder
+FROM golang:1.24-alpine AS builder
 WORKDIR /app
 # 复制依赖清单，利用Docker缓存
 COPY go.mod go.sum ./

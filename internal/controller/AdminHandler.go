@@ -143,4 +143,12 @@ func (h *AdminHandler) UpdateUserBalance(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-
+// GetDashboardStats 数据大屏统计
+func (h *AdminHandler) GetDashboardStats(c *gin.Context) {
+	stats, err := h.Service.GetDashboardStats()
+	if err != nil {
+		response.Fail(c, "获取统计失败")
+		return
+	}
+	response.Success(c, stats)
+}
