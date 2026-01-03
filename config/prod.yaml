@@ -2,15 +2,15 @@ server:
   port: "8081" # 生产环境容器内运行在 8081
 
 db:
-  # 容器内访问宿主机数据库，必须用 172.17.0.1 (Docker网桥IP)
-  dsn: "root:123456@tcp(172.17.0.1:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
+  # 用户要求这里的配置必须使用 公网IP
+  dsn: "root:123456@tcp(43.138.85.114:3306)/smart_community?charset=utf8mb4&parseTime=True&loc=Local"
 
 redis:
-  # 容器内访问宿主机 Redis
-  addr: "172.17.0.1:6379"
+  # 用户要求这里的配置必须使用 公网IP
+  addr: "43.138.85.114:6379"
 
 minio:
-  endpoint: "43.138.85.114:9000"           # 公网IP (供前端访问)
+  endpoint: "43.138.85.114:9000"           # 公网IP
   access_key: "minioadmin"
   secret_key: "minioadmin123"
   bucket: "community"
