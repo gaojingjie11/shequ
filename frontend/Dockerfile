@@ -1,5 +1,5 @@
 # 构建阶段：安装依赖并打包前端
-FROM node:16-alpine AS builder
+FROM node:18-alpine AS builder
 WORKDIR /app
 # 复制前端依赖清单
 COPY package.json package-lock.json ./
