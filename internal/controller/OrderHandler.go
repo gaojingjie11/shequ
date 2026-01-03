@@ -1,12 +1,11 @@
 package controller
 
 import (
+	"github.com/gin-gonic/gin"
 	"smartcommunity/internal/model"
 	"smartcommunity/internal/service"
 	"smartcommunity/pkg/response"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
 type OrderHandler struct {

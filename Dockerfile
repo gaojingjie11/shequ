@@ -1,21 +1,22 @@
-## 使用 Ubuntu 20.04 作为基础镜像
-#FROM ubuntu:20.04
-#
-## 创建工作目录 /app
-#RUN mkdir -p /app
-#
-## 将本地编译好的二进制文件 (假设叫 main) 复制到容器的 /app 目录下
-## 注意：这一步要求你目录下必须先有一个编译好的 main 文件
-#COPY main /app/main
-#
-## (可选) 如果你有配置文件目录，比如 config/，也需要复制进去
-## COPY config /app/config
-#
-## 设置工作目录
-#WORKDIR /app
-#
-## 赋予执行权限 (虽然通常 COPY 进去就有权限，但为了保险)
-#RUN chmod +x /app/main
-#
-## 设置启动入口
-#ENTRYPOINT ["/app/main"]
+# 构建阶段：编译Go代码
+FROM golang:1.20-alpine AS builder
+WORKDIR /app
+# 复制依赖清单，利用Docker缓存
+COPY go.mod go.sum ./
+RUN go mod download
+# 复制所有后端代码
+COPY . .
+# 静态编译Go程序，适配alpine轻量镜像
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o smartserver ./cmd/main.go
+
+# 运行阶段：轻量镜像运行
+FROM alpine:latest
+WORKDIR /app
+# 复制编译产物
+COPY --from=builder /app/smartserver .
+# 复制生产环境配置文件
+COPY --from=builder /app/config/prod.yaml ./config/prod.yaml
+# 暴露后端API端口
+EXPOSE 8081
+# 启动后端服务
+CMD ["./smartserver"]

@@ -3,14 +3,13 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
 	"path/filepath"
 	"smartcommunity/internal/config"
 	"smartcommunity/internal/global"
 	"smartcommunity/pkg/response"
 	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/minio/minio-go/v7"
 )
 
 type UploadHandler struct{}
