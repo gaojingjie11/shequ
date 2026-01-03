@@ -4,11 +4,11 @@ db:
 
 redis:
   # 线上 Redis 地址
-  addr: "127.0.0.1:6379"
+  addr: "127.0.0.1:6359"
 
 minio:
-  endpoint: "127.0.0.1:9000"           # 线上 MinIO 地址
-  access_key: "minioadmin"         # 生产环境请修改强密码
-  secret_key: "minioadmin123"      # 生产环境请修改强密码
+  endpoint: "43.138.85.114:9000"           # 必须用公网 IP，否则前端无法访问图片
+  access_key: "minioadmin"
+  secret_key: "minioadmin123"
   bucket: "community"
-  use_ssl: false                   # 如果配置了 https 则为 true
+  use_ssl: false
