@@ -11,9 +11,14 @@ var Conf *Config
 
 // Config 结构体映射 dev.yaml 的结构
 type Config struct {
-	DB    DBConfig    `mapstructure:"db"`
-	Redis RedisConfig `mapstructure:"redis"`
-	MinIO MinIOConfig `mapstructure:"minio"` // 新增
+	Server ServerConfig `mapstructure:"server"` // 新增 Server 配置
+	DB     DBConfig     `mapstructure:"db"`
+	Redis  RedisConfig  `mapstructure:"redis"`
+	MinIO  MinIOConfig  `mapstructure:"minio"`
+}
+
+type ServerConfig struct {
+	Port string `mapstructure:"port"`
 }
 
 type DBConfig struct {

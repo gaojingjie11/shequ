@@ -60,6 +60,10 @@ func main() {
 
 	router.InitRouter(r)
 
-	fmt.Println("服务启动在 :8080")
-	r.Run(":8080")
+	port := config.Conf.Server.Port
+	if port == "" {
+		port = "8080"
+	}
+	fmt.Printf("服务启动在 :%s\n", port)
+	r.Run(":" + port)
 }
