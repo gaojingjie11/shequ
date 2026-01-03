@@ -37,6 +37,18 @@
           </div>
         </div>
       </div>
+
+      <div class="pagination-container mt-4" v-if="total > 0">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[5, 10, 20]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
       
       <div class="empty-state" v-if="fees.length === 0">
         <div class="empty-state-icon">💰</div>
@@ -53,12 +65,16 @@ import Navbar from '@/components/layout/Navbar.vue'
 import { getPropertyFeeList, payPropertyFee } from '@/api/service'
 import { useUserStore } from '@/stores/user'
 import dayjs from 'dayjs'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const fees = ref([])
 const paying = ref(false)
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD')
@@ -66,33 +82,52 @@ const formatDate = (date) => {
 
 const fetchFees = async () => {
   try {
-    fees.value = await getPropertyFeeList()
+    const res = await getPropertyFeeList({
+        page: currentPage.value,
+        size: pageSize.value
+    })
+    fees.value = res.list
+    total.value = res.total
   } catch (error) {
     console.error('获取物业费列表失败:', error)
   }
 }
 
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  fetchFees()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  fetchFees()
+}
+
 const handlePay = async (fee) => {
   if (userStore.userInfo.balance < fee.amount) {
-    alert('余额不足，请先充值')
+    ElMessage.warning('余额不足，请先充值')
     return
   }
   
-  if (!confirm(`确认缴纳${fee.month}的物业费 ¥${fee.amount}？`)) {
-    return
-  }
-  
-  paying.value = true
   try {
+    await ElMessageBox.confirm(`确认缴纳${fee.month}的物业费 ¥${fee.amount}？`, '缴费确认', {
+      confirmButtonText: '立即缴费',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    paying.value = true
     await payPropertyFee({
       type: 2,  // 2表示物业费
       related_id: fee.id
     })
-    alert('缴费成功！')
+    ElMessage.success('缴费成功！')
     await fetchFees()
     await userStore.fetchUserInfo()  // 刷新余额
   } catch (error) {
-    alert('缴费失败：' + (error.response?.data?.msg || error.message))
+    if (error !== 'cancel') {
+        ElMessage.error('缴费失败：' + (error.response?.data?.msg || error.message))
+    }
   } finally {
     paying.value = false
   }

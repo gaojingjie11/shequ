@@ -18,6 +18,30 @@ export function login(data) {
     })
 }
 
+// 退出登录
+export function logout() {
+    return request({
+        url: '/logout',
+        method: 'post'
+    })
+}
+
+export function sendCode(data) {
+    return request({
+        url: '/send_code',
+        method: 'post',
+        data
+    })
+}
+
+export function loginByCode(data) {
+    return request({
+        url: '/login_code',
+        method: 'post',
+        data
+    })
+}
+
 // 忘记密码
 export function forgetPassword(data) {
     return request({

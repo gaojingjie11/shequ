@@ -51,6 +51,18 @@
           <div class="repair-time">{{ formatDate(item.created_at) }}</div>
         </div>
       </div>
+
+      <div class="pagination-container mt-4" v-if="total > 0">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[5, 10, 20]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -60,6 +72,7 @@ import { ref, onMounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import { createRepair, getRepairList } from '@/api/service'
 import dayjs from 'dayjs'
+import { ElMessage } from 'element-plus'
 
 const form = ref({
   type: 1,
@@ -69,6 +82,9 @@ const form = ref({
 
 const loading = ref(false)
 const repairs = ref([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
@@ -88,11 +104,11 @@ const submitRepair = async () => {
   loading.value = true
   try {
     await createRepair(form.value)
-    alert('提交成功！')
+    ElMessage.success('提交成功！')
     form.value = { type: 1, category: '', content: '' }
     await fetchRepairs()
   } catch (error) {
-    alert('提交失败')
+    ElMessage.error('提交失败')
   } finally {
     loading.value = false
   }
@@ -100,10 +116,25 @@ const submitRepair = async () => {
 
 const fetchRepairs = async () => {
   try {
-    repairs.value = await getRepairList()
+    const res = await getRepairList({
+        page: currentPage.value,
+        size: pageSize.value
+    })
+    repairs.value = res.list
+    total.value = res.total
   } catch (error) {
     console.error('获取记录失败:', error)
   }
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  fetchRepairs()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  fetchRepairs()
 }
 
 onMounted(() => {

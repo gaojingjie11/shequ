@@ -13,8 +13,23 @@ type NoticeHandler struct {
 	Service service.NoticeService
 }
 
-// List 首页公告列表
+// List 公告列表 (支持分页)
 func (h *NoticeHandler) List(c *gin.Context) {
+	// 如果传入 page 参数，则走分页逻辑
+	if c.Query("page") != "" {
+		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+		size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+		list, total, err := h.Service.GetPageList(page, size)
+		if err != nil {
+			response.Fail(c, "获取失败")
+			return
+		}
+		response.Success(c, gin.H{"list": list, "total": total})
+		return
+	}
+
+	// 否则走默认 Limit 逻辑 (首页)
 	list, err := h.Service.GetList(10) // 默认取最新 10 条
 	if err != nil {
 		response.Fail(c, "获取失败")

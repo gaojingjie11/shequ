@@ -69,12 +69,7 @@
           <button class="btn btn-sm btn-primary" @click="$router.push('/admin/property-fee')">进入</button>
         </div>
         
-        <div class="admin-card card" v-if="hasPermission(['admin', 'store', 'property'])">
-          <div class="admin-icon">📈</div>
-          <h3>数据大屏</h3>
-          <p>查看社区数据可视化</p>
-          <button class="btn btn-sm btn-primary" @click="$router.push('/admin/data')">进入</button>
-        </div>
+
       </div>
     </div>
   </div>

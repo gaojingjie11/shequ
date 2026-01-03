@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@kjgl77/datav-vue3": "^1.7.4",
     "axios": "^1.7.9",
     "dayjs": "^1.11.13",
     "echarts": "^6.0.0",

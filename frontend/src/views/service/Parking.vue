@@ -5,41 +5,42 @@
     <div class="container">
       <h1 class="page-title">车位管理</h1>
       
-      <div class="parking-info card" v-if="parking">
-        <h3>我的车位信息</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="info-label">车位号：</span>
-            <span class="info-value">{{ parking.parking_no }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">状态：</span>
-            <span class="tag" :class="parking.status === 1 ? 'tag-success' : 'tag-warning'">
-              {{ parking.status === 1 ? '已占用' : '空闲' }}
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">车牌号：</span>
-            <span class="info-value">{{ parking.car_plate || '未绑定' }}</span>
-          </div>
-        </div>
-        
-        <div class="bind-form">
-          <h4>{{ parking.car_plate ? '更新车牌' : '绑定车牌' }}</h4>
-          <form @submit.prevent="handleBindCar">
-            <div class="form-group">
-              <input 
-                v-model="carPlate" 
-                class="input" 
-                placeholder="请输入车牌号，如：辽A88888"
-                required
-              />
+      <div v-if="parkingList && parkingList.length > 0">
+          <div class="parking-info card mb-4" v-for="item in parkingList" :key="item.id">
+            <h3>我的车位信息 ({{item.parking_no}})</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">车位号：</span>
+                <span class="info-value">{{ item.parking_no }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">状态：</span>
+                <span class="tag" :class="item.status === 1 ? 'tag-success' : 'tag-warning'">
+                  {{ item.status === 1 ? '已占用' : '空闲' }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">车牌号：</span>
+                <span class="info-value">{{ item.car_plate || '未绑定' }}</span>
+              </div>
             </div>
-            <button type="submit" class="btn btn-primary" :disabled="loading">
-              {{ loading ? '提交中...' : parking.car_plate ? '更新' : '绑定' }}
-            </button>
-          </form>
-        </div>
+            
+            <div class="bind-form">
+              <h4>{{ item.car_plate ? '更新车牌' : '绑定车牌' }}</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <input 
+                    v-model="item.editCarPlate" 
+                    class="input" 
+                    :placeholder="item.car_plate || '请输入车牌号'"
+                  />
+                </div>
+                <button type="button" class="btn btn-primary" :disabled="loading" @click="handleBindCar(item)">
+                  {{ loading ? '提交中...' : '更新' }}
+                </button>
+              </div>
+            </div>
+          </div>
       </div>
       
       <div class="empty-state card" v-else>
@@ -55,36 +56,47 @@
 import { ref, onMounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import { getMyParking, bindCar } from '@/api/service'
+import { ElMessage } from 'element-plus'
 
-const parking = ref(null)
-const carPlate = ref('')
+const parkingList = ref([])
 const loading = ref(false)
 
 const fetchParking = async () => {
   try {
     const data = await getMyParking()
-    parking.value = data
-    if (data.car_plate) {
-      carPlate.value = data.car_plate
+    // backend now returns list
+    if (Array.isArray(data)) {
+        parkingList.value = data.map(p => ({
+            ...p,
+            editCarPlate: p.car_plate // init buffer
+        }))
+    } else if (data) {
+        // Fallback if backend returns object (legacy cache?)
+        parkingList.value = [{...data, editCarPlate: data.car_plate}]
+    } else {
+        parkingList.value = []
     }
   } catch (error) {
-    console.log('未分配车位或获取失败')
+    console.log('未分配车位或获取失败', error)
   }
 }
 
-const handleBindCar = async () => {
-  if (!carPlate.value.trim()) {
-    alert('请输入车牌号')
+const handleBindCar = async (item) => {
+  if (!item.editCarPlate || !item.editCarPlate.trim()) {
+    ElMessage.warning('请输入车牌号')
     return
   }
   
   loading.value = true
   try {
-    await bindCar({ car_plate: carPlate.value })
-    alert(parking.value.car_plate ? '更新成功！' : '绑定成功！')
+    await bindCar({ 
+        parking_id: item.id, 
+        car_plate: item.editCarPlate 
+    })
+    ElMessage.success('更新成功！')
     await fetchParking()
   } catch (error) {
-    alert('操作失败：' + (error.response?.data?.msg || error.message))
+    ElMessage.error('操作失败：' + (error.response?.data?.msg || error.message))
   } finally {
     loading.value = false
   }
@@ -151,6 +163,10 @@ onMounted(() => {
 .bind-form .form-group {
   flex: 1;
 }
+
+.mb-4 { margin-bottom: 24px; }
+.form-row { display: flex; gap: 16px; align-items: center; }
+.form-row .form-group { flex: 1; margin: 0; }
 
 .empty-state {
   max-width: 400px;

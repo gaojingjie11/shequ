@@ -6,6 +6,7 @@ const routes = [
         path: '/',
         redirect: '/home'
     },
+
     {
         path: '/login',
         name: 'Login',
@@ -167,12 +168,6 @@ const routes = [
         name: 'AdminPropertyFeeList',
         component: () => import('@/views/admin/PropertyFeeList.vue'),
         meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'property'] }
-    },
-    {
-        path: '/admin/data',
-        name: 'AdminDataScreen',
-        component: () => import('@/views/admin/DataScreen.vue'),
-        meta: { requiresAuth: true, requiresAdmin: true, roles: ['admin', 'store', 'property'] } // Accessible by all admins? Or just admin? Let's say all for now or check requirements. User said "Manager's stats can be removed temporarily". But User wants "Data Visualization Big Screen". Let's give all admins access.
     }
 ]
 

@@ -11,6 +11,9 @@ type Repair struct {
 	Status    int       `json:"status"`   // 0:待处理 1:处理中 2:已完成
 	Result    string    `json:"result"`   // 处理结果/回复
 	CreatedAt time.Time `json:"created_at"`
+
+	// 关联用户
+	User SysUser `gorm:"foreignKey:UserID" json:"user"`
 }
 
 func (Repair) TableName() string {

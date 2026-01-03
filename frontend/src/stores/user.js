@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { login as apiLogin, register as apiRegister, getUserInfo } from '@/api/auth'
+import { login as apiLogin, loginByCode as apiLoginByCode, register as apiRegister, logout as apiLogout, getUserInfo } from '@/api/auth'
 
 export const useUserStore = defineStore('user', {
     state: () => ({
@@ -13,6 +13,23 @@ export const useUserStore = defineStore('user', {
         async login(data) {
             try {
                 const res = await apiLogin(data)
+                this.token = res.token
+                this.userInfo = res.user_info
+                this.isLoggedIn = true
+
+                localStorage.setItem('token', res.token)
+                localStorage.setItem('userInfo', JSON.stringify(res.user_info))
+
+                return res
+            } catch (error) {
+                throw error
+            }
+        },
+
+        // 验证码登录
+        async loginByCode(data) {
+            try {
+                const res = await apiLoginByCode(data)
                 this.token = res.token
                 this.userInfo = res.user_info
                 this.isLoggedIn = true
@@ -43,13 +60,21 @@ export const useUserStore = defineStore('user', {
         },
 
         // 退出登录
-        logout() {
-            this.token = ''
-            this.userInfo = {}
-            this.isLoggedIn = false
+        async logout() {
+            try {
+                // 尝试调用后端登出接口，清理 Redis Token
+                await apiLogout()
+            } catch (error) {
+                console.warn('后端登出失败(可能是Token已过期):', error)
+            } finally {
+                // 无论后端是否成功，前端都要清理掉 local storage
+                this.token = ''
+                this.userInfo = {}
+                this.isLoggedIn = false
 
-            localStorage.removeItem('token')
-            localStorage.removeItem('userInfo')
+                localStorage.removeItem('token')
+                localStorage.removeItem('userInfo')
+            }
         }
     }
 })

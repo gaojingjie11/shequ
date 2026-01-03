@@ -40,13 +40,15 @@ func (h *FinanceHandler) Pay(c *gin.Context) {
 // ListPropertyFee 查看物业费
 func (h *FinanceHandler) ListPropertyFee(c *gin.Context) {
 	userID, _ := c.Get("userID")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
 
-	list, err := h.Service.GetPropertyFeeList(userID.(int64))
+	list, total, err := h.Service.GetPropertyFeeList(userID.(int64), page, size)
 	if err != nil {
 		response.Fail(c, "获取失败")
 		return
 	}
-	response.Success(c, list)
+	response.Success(c, gin.H{"list": list, "total": total})
 }
 
 // Recharge 充值接口

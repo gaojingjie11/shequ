@@ -37,6 +37,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { getFavoriteList, deleteFavorite } from '@/api/favorite'
+import { ElMessage } from 'element-plus'
+
 
 const router = useRouter()
 const list = ref([])
@@ -55,7 +57,7 @@ const removeFavorite = async (pid) => {
         await deleteFavorite({ product_id: pid })
         fetchList() // 刷新
     } catch (e) {
-        alert('操作失败')
+        ElMessage.error('操作失败')
     }
 }
 

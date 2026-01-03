@@ -16,32 +16,36 @@ func (s *SecurityService) CreateVisitor(visitor *model.Visitor) error {
 	return global.DB.Create(visitor).Error
 }
 
-// GetMyVisitors 获取我的访客记录
-func (s *SecurityService) GetMyVisitors(userID int64) ([]model.Visitor, error) {
+// GetMyVisitors 获取我的访客记录 (分页)
+func (s *SecurityService) GetMyVisitors(userID int64, page, size int) ([]model.Visitor, int64, error) {
 	var list []model.Visitor
-	err := global.DB.Where("user_id = ?", userID).Order("created_at desc").Find(&list).Error
-	return list, err
+	var total int64
+	db := global.DB.Model(&model.Visitor{}).Where("user_id = ?", userID)
+	db.Count(&total)
+
+	offset := (page - 1) * size
+	err := db.Order("created_at desc").Offset(offset).Limit(size).Find(&list).Error
+	return list, total, err
 }
 
 // --- 车位相关 ---
 
-// GetMyParking 获取我的车位信息
-func (s *SecurityService) GetMyParking(userID int64) (*model.Parking, error) {
-	var parking model.Parking
-	// 假设一个用户只能绑定一个车位，或者查询列表
-	err := global.DB.Where("user_id = ?", userID).First(&parking).Error
+// GetMyParking 获取我的车位信息 (支持多个)
+func (s *SecurityService) GetMyParking(userID int64) ([]model.Parking, error) {
+	var list []model.Parking
+	err := global.DB.Where("user_id = ?", userID).Find(&list).Error
 	if err != nil {
-		return nil, errors.New("您暂无车位信息")
+		return nil, err
 	}
-	return &parking, nil
+	return list, nil
 }
 
 // BindCarPlate 绑定/修改车牌号
-func (s *SecurityService) BindCarPlate(userID int64, carPlate string) error {
-	// 1. 查找用户拥有的车位
+func (s *SecurityService) BindCarPlate(userID int64, parkingID int64, carPlate string) error {
+	// 1. 查找用户拥有的车位 (Double check ownership)
 	var parking model.Parking
-	if err := global.DB.Where("user_id = ?", userID).First(&parking).Error; err != nil {
-		return errors.New("未找到您的车位，无法绑定")
+	if err := global.DB.Where("id = ? AND user_id = ?", parkingID, userID).First(&parking).Error; err != nil {
+		return errors.New("未找到对应车位或无权操作")
 	}
 
 	// 2. 更新车牌
@@ -128,10 +132,8 @@ func (s *SecurityService) AssignParking(id int64, userID int64, carPlate string)
 		}).Error
 	}
 
-	// 如果是绑定，检查是否已被占用
-	if parking.Status == 1 && parking.UserID != userID {
-		return errors.New("该车位已被其他用户占用")
-	}
+	// Admin has the right to re-assign, so we allow overwriting.
+	// Only check if userID is valid if needed (we assume valid for now)
 
 	return global.DB.Model(&parking).Updates(map[string]interface{}{
 		"user_id":   userID,

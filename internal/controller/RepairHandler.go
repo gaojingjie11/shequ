@@ -4,6 +4,7 @@ import (
 	"smartcommunity/internal/model"
 	"smartcommunity/internal/service"
 	"smartcommunity/pkg/response"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,13 +44,15 @@ func (h *RepairHandler) Create(c *gin.Context) {
 // List 我的记录接口
 func (h *RepairHandler) List(c *gin.Context) {
 	userID, _ := c.Get("userID")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
 
-	list, err := h.Service.GetUserList(userID.(int64))
+	list, total, err := h.Service.GetUserList(userID.(int64), page, size)
 	if err != nil {
 		response.Fail(c, "获取失败")
 		return
 	}
-	response.Success(c, list)
+	response.Success(c, gin.H{"list": list, "total": total})
 }
 
 // Process 处理报修 (Admin)
@@ -71,12 +74,15 @@ func (h *RepairHandler) Process(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// ListAll 管理员列表
+// ListAll 管理员列表 (分页)
 func (h *RepairHandler) ListAll(c *gin.Context) {
-	list, err := h.Service.GetAllList(100)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+	list, total, err := h.Service.GetPageList(page, size)
 	if err != nil {
 		response.Fail(c, "获取失败")
 		return
 	}
-	response.Success(c, list)
+	response.Success(c, gin.H{"list": list, "total": total})
 }

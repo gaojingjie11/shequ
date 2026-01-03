@@ -101,12 +101,15 @@ func (h *SecurityHandler) CreateVisitor(c *gin.Context) {
 // ListVisitor 查看记录
 func (h *SecurityHandler) ListVisitor(c *gin.Context) {
 	userID, _ := c.Get("userID")
-	list, err := h.Service.GetMyVisitors(userID.(int64))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+	list, total, err := h.Service.GetMyVisitors(userID.(int64), page, size)
 	if err != nil {
 		response.Fail(c, "获取失败")
 		return
 	}
-	response.Success(c, list)
+	response.Success(c, gin.H{"list": list, "total": total})
 }
 
 // --- 车位接口 ---
@@ -127,14 +130,15 @@ func (h *SecurityHandler) MyParking(c *gin.Context) {
 func (h *SecurityHandler) BindCar(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	var req struct {
-		CarPlate string `json:"car_plate"`
+		ParkingID int64  `json:"parking_id"`
+		CarPlate  string `json:"car_plate"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Fail(c, "参数错误")
 		return
 	}
 
-	if err := h.Service.BindCarPlate(userID.(int64), req.CarPlate); err != nil {
+	if err := h.Service.BindCarPlate(userID.(int64), req.ParkingID, req.CarPlate); err != nil {
 		response.Fail(c, err.Error())
 		return
 	}

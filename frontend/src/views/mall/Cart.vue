@@ -48,6 +48,7 @@ import { useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { getCartList, deleteCartItem, updateCartQuantity } from '@/api/order'
 import { useCartStore } from '@/stores/cart'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -96,7 +97,7 @@ const removeItem = async (id) => {
     await deleteCartItem(id)
     fetchCart()
   } catch (error) {
-    alert('删除失败')
+    ElMessage.error('删除失败')
   }
 }
 

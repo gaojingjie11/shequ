@@ -1,10 +1,11 @@
 import request from '@/utils/request'
 
 // 获取公告列表
-export function getNoticeList() {
+export function getNoticeList(params) {
     return request({
         url: '/notices',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 
@@ -34,10 +35,11 @@ export function createRepair(data) {
 }
 
 // 获取报修列表
-export function getRepairList() {
+export function getRepairList(params) {
     return request({
         url: '/repair/list',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 
@@ -51,10 +53,11 @@ export function createVisitor(data) {
 }
 
 // 获取访客列表
-export function getVisitorList() {
+export function getVisitorList(params) {
     return request({
         url: '/visitor/list',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 
@@ -76,10 +79,11 @@ export function bindCar(data) {
 }
 
 // 获取物业费列表
-export function getPropertyFeeList() {
+export function getPropertyFeeList(params) {
     return request({
         url: '/property/list',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 

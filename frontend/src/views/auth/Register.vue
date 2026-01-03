@@ -58,6 +58,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -82,10 +83,10 @@ const handleRegister = async () => {
   loading.value = true
   try {
     await userStore.register(form.value)
-    alert('注册成功！请登录')
+    ElMessage.success('注册成功！请登录')
     router.push('/login')
   } catch (error) {
-    alert(error.response?.data?.message || '注册失败')
+    ElMessage.error(error.response?.data?.message || '注册失败')
   } finally {
     loading.value = false
   }

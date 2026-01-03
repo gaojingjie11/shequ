@@ -108,11 +108,16 @@ func (s *FinanceService) UnifiedPay(userID int64, businessID int64, payType int,
 	})
 }
 
-// GetPropertyFeeList 保持不变...
-func (s *FinanceService) GetPropertyFeeList(userID int64) ([]model.PropertyFee, error) {
+// GetPropertyFeeList 获取用户的物业费 (分页)
+func (s *FinanceService) GetPropertyFeeList(userID int64, page, size int) ([]model.PropertyFee, int64, error) {
 	var list []model.PropertyFee
-	err := global.DB.Where("user_id = ?", userID).Order("id desc").Find(&list).Error
-	return list, err
+	var total int64
+	db := global.DB.Model(&model.PropertyFee{}).Where("user_id = ?", userID)
+	db.Count(&total)
+
+	offset := (page - 1) * size
+	err := db.Order("id desc").Offset(offset).Limit(size).Find(&list).Error
+	return list, total, err
 }
 
 // Recharge 钱包充值

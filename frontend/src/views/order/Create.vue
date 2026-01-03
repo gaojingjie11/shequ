@@ -50,6 +50,8 @@ import Navbar from '@/components/layout/Navbar.vue'
 import { useUserStore } from '@/stores/user'
 import { getCartList, createOrder } from '@/api/order'
 import { getStoreList } from '@/api/service'
+import { ElMessage } from 'element-plus'
+
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -71,7 +73,7 @@ const loadData = async () => {
     }
     
     if (cartItems.value.length === 0) {
-      alert('购物车为空')
+      ElMessage.warning('购物车为空')
       router.push('/mall')
     }
   } catch (e) {
@@ -81,7 +83,7 @@ const loadData = async () => {
 
 const submitOrder = async () => {
   if (!selectedStoreId.value) {
-    alert('请选择服务门店')
+    ElMessage.warning('请选择服务门店')
     return
   }
   
@@ -97,10 +99,10 @@ const submitOrder = async () => {
         store_id: selectedStoreId.value,
         items: items
     })
-    alert('订单创建成功')
+    ElMessage.success('订单创建成功')
     router.push('/order') 
   } catch (e) {
-    alert('创建失败: ' + (e.response?.data?.msg || e.message))
+    ElMessage.error('创建失败: ' + (e.response?.data?.msg || e.message))
   } finally {
     submitting.value = false
   }

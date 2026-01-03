@@ -1,5 +1,12 @@
 import request from '@/utils/request'
 
+export function getDashboardStats() {
+    return request({
+        url: '/dashboard/stats',
+        method: 'get'
+    })
+}
+
 // 用户管理
 export const getUserList = (params) => {
     return request({
@@ -59,10 +66,11 @@ export const auditVisitor = (data) => {
 }
 
 // 报修管理
-export const getAdminRepairList = () => {
+export const getAdminRepairList = (params) => {
     return request({
         url: '/repair/admin/list',
-        method: 'get'
+        method: 'get',
+        params
     })
 }
 

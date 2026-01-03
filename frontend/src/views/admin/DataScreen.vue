@@ -1,195 +1,243 @@
 <template>
   <div class="data-screen">
-    <div class="screen-header">
-      <div class="header-left" @click="$router.push('/admin')">
-        <el-icon><ArrowLeft /></el-icon> 返回管理后台
+    <!-- Full Screen Container for DataV -->
+    <dv-full-screen-container>
+      <!-- Header -->
+      <div class="screen-header">
+        <dv-decoration-8 style="width:300px;height:50px;" />
+        <div class="header-center">
+          <dv-decoration-5 style="width:500px;height:40px;" />
+          <div class="title-text">智慧社区数据可视化大屏</div>
+        </div>
+        <dv-decoration-8 :reverse="true" style="width:300px;height:50px;" />
+        <div class="time-text">{{ currentTime }}</div>
+        <div class="back-btn" @click="$router.push('/home')">
+            <el-icon><HomeFilled /></el-icon> 首页
+        </div>
       </div>
-      <div class="header-center">智慧社区数据可视化大屏</div>
-      <div class="header-right">{{ currentTime }}</div>
-    </div>
 
-    <div class="screen-body">
-      <!-- Row 1: Key Metrics -->
-      <div class="metrics-row">
-        <el-row :gutter="20">
-          <el-col :span="6">
-            <div class="metric-card">
-              <div class="metric-icon user-bg"><el-icon><User /></el-icon></div>
-              <div class="metric-info">
-                <div class="label">总用户数</div>
-                <div class="value">{{ stats.totalUsers || 0 }}</div>
+      <!-- Body -->
+      <div class="screen-body">
+        <el-row :gutter="20" style="height: 100%">
+          <!-- Left Column -->
+          <el-col :span="6" class="column-side">
+            <!-- Card 1: Core Metrics -->
+            <dv-border-box-11 class="tech-card h-30" title="核心指标">
+              <div class="metrics-grid p-20">
+                <div class="metric-box">
+                  <div class="metric-label">总用户</div>
+                  <div class="metric-value">{{ stats.totalUsers || 0 }}</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-label">日订单</div>
+                  <div class="metric-value">{{ stats.todayOrders || 0 }}</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-label">车位率</div>
+                  <div class="metric-value">{{ stats.parkingRate || '0%' }}</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-label">月营收</div>
+                  <div class="metric-value small-font">¥{{ stats.monthIncome || 0 }}</div>
+                </div>
               </div>
-            </div>
+            </dv-border-box-11>
+
+            <!-- Card 2: Repair Stats -->
+            <dv-border-box-13 class="tech-card h-35 mt-15">
+               <div class="chart-title">报修类型占比</div>
+               <div ref="pieChartRef" class="chart-container"></div>
+            </dv-border-box-13>
+
+            <!-- Card 3: Energy Trend -->
+            <dv-border-box-13 class="tech-card h-35 mt-15">
+               <div class="chart-title">水电能耗趋势</div>
+               <div ref="lineChartRef" class="chart-container"></div>
+            </dv-border-box-13>
           </el-col>
-          <el-col :span="6">
-            <div class="metric-card">
-              <div class="metric-icon order-bg"><el-icon><ShoppingCart /></el-icon></div>
-              <div class="metric-info">
-                <div class="label">今日订单</div>
-                <div class="value">{{ stats.todayOrders || 0 }}</div>
-              </div>
-            </div>
+
+          <!-- Center Column -->
+          <el-col :span="12" class="column-center">
+             <div class="center-map-box">
+               <dv-border-box-10>
+                   <!-- Background Image -->
+                   <div class="map-bg"></div>
+                   <div class="map-title-overlay">社区全景模型</div>
+                   
+                   <!-- Center Stats Overlay -->
+                   <div class="center-data">
+                      <div class="c-item">
+                         <div class="c-label">年度总交易额</div>
+                         <div class="c-num"><dv-digital-flop :config="flopConfig1" style="width:200px;height:50px;" /></div>
+                      </div>
+                       <div class="c-item">
+                         <div class="c-label">安保巡逻次数</div>
+                         <div class="c-num"><dv-digital-flop :config="flopConfig2" style="width:200px;height:50px;" /></div>
+                      </div>
+                   </div>
+               </dv-border-box-10>
+             </div>
           </el-col>
-           <el-col :span="6">
-            <div class="metric-card">
-              <div class="metric-icon parking-bg"><el-icon><Van /></el-icon></div>
-              <div class="metric-info">
-                <div class="label">车位占用率</div>
-                <div class="value">{{ stats.parkingRate || '0%' }}</div>
-              </div>
-            </div>
-          </el-col>
-           <el-col :span="6">
-            <div class="metric-card">
-              <div class="metric-icon money-bg"><el-icon><Money /></el-icon></div>
-              <div class="metric-info">
-                <div class="label">本月营收</div>
-                <div class="value">¥{{ stats.monthIncome || 0 }}</div>
-              </div>
-            </div>
+
+          <!-- Right Column -->
+          <el-col :span="6" class="column-side">
+             <!-- Card 1: Cost Analysis -->
+             <dv-border-box-13 class="tech-card h-40">
+               <div class="chart-title">费用构成分析</div>
+               <div ref="barChartRef" class="chart-container"></div>
+             </dv-border-box-13>
+
+             <!-- Card 2: Visitor Monitor -->
+             <dv-border-box-11 class="tech-card h-60 mt-15" title="实时访客监控">
+               <div class="visitor-list p-20">
+                   <dv-scroll-board :config="scrollBoardConfig" style="width:100%;height:100%" />
+               </div>
+             </dv-border-box-11>
           </el-col>
         </el-row>
       </div>
-
-      <!-- Row 2: Charts -->
-      <el-row :gutter="20" class="charts-row">
-        <el-col :span="16">
-          <div class="chart-card">
-            <div class="chart-title">近7日交易走势</div>
-            <div ref="lineChartRef" class="chart-container"></div>
-          </div>
-        </el-col>
-        <el-col :span="8">
-           <div class="chart-card">
-            <div class="chart-title">费用构成分析</div>
-            <div ref="pieChartRef" class="chart-container"></div>
-          </div>
-        </el-col>
-      </el-row>
-
-       <!-- Row 3: More Charts -->
-       <el-row :gutter="20" class="charts-row">
-        <el-col :span="12">
-           <div class="chart-card">
-            <div class="chart-title">报修类型分布</div>
-             <div ref="barChartRef" class="chart-container"></div>
-          </div>
-        </el-col>
-         <el-col :span="12">
-           <div class="chart-card">
-            <div class="chart-title">实时访客记录</div>
-            <div class="visitor-list">
-              <el-table :data="visitorList" style="width: 100%" :row-class-name="tableRowClassName">
-                <el-table-column prop="visitor_name" label="访客姓名" width="100" />
-                <el-table-column prop="visit_time" label="来访时间" />
-                 <el-table-column prop="reason" label="事由" />
-                <el-table-column label="状态">
-                   <template #default="scope">
-                      <el-tag size="small" :type="scope.row.status === 1 ? 'success' : 'warning'">
-                        {{ scope.row.status === 1 ? '已通过' : '待审核' }}
-                      </el-tag>
-                   </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </div>
-        </el-col>
-       </el-row>
-    </div>
+    </dv-full-screen-container>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, reactive, watch } from 'vue'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
-import { getAdminParkingList } from '@/api/admin' 
-// Note: We might need more dedicated stats APIs, but for now mocking/reusing what we have.
+import { getDashboardStats } from '@/api/admin'
+import { HomeFilled } from '@element-plus/icons-vue'
 
 const currentTime = ref(dayjs().format('YYYY-MM-DD HH:mm:ss'))
 let timer = null
-const stats = ref({
-  totalUsers: 142,
-  todayOrders: 23,
-  parkingRate: '65%',
-  monthIncome: '12,450'
+const stats = ref({})
+
+// DataV Configs
+const flopConfig1 = reactive({
+    number: [0],
+    content: '¥ {nt}',
+    style: { fontSize: 30, fill: '#ffd04b' }
+})
+const flopConfig2 = reactive({
+    number: [0],
+    style: { fontSize: 30, fill: '#ffd04b' }
+})
+const scrollBoardConfig = reactive({
+    header: ['姓名', '时间', '状态'],
+    data: [],
+    rowNum: 7,
+    headerBGC: 'rgba(0, 242, 254, 0.1)',
+    oddRowBGC: 'rgba(0, 0, 0, 0.1)',
+    evenRowBGC: 'rgba(0, 242, 254, 0.05)',
+    columnWidth: [80, 150, 80],
+    align: ['center', 'center', 'center']
 })
 
-const visitorList = ref([
-    { visitor_name: '张三', visit_time: '2024-12-31 10:30', reason: '快递', status: 1 },
-    { visitor_name: '李四', visit_time: '2024-12-31 11:15', reason: '外卖', status: 1 },
-    { visitor_name: '王五', visit_time: '2024-12-31 11:20', reason: '探亲', status: 0 },
-    { visitor_name: '赵六', visit_time: '2024-12-31 11:45', reason: '维修', status: 0 },
-])
-
-const lineChartRef = ref(null)
 const pieChartRef = ref(null)
+const lineChartRef = ref(null)
 const barChartRef = ref(null)
-let lineChart = null
+
 let pieChart = null
+let lineChart = null
 let barChart = null
 
-const initCharts = () => {
-    // Line Chart
+const fetchData = async () => {
+    try {
+        const res = await getDashboardStats()
+        if (res) {
+             stats.value = res
+             // Update Flops
+             flopConfig1.number = [res.yearTotalAmount || 0]
+             flopConfig2.number = [res.patrolCount || 0]
+
+             // Update Scroll Board
+             if (res.visitorLogs && res.visitorLogs.length > 0) {
+                 scrollBoardConfig.data = res.visitorLogs.map(item => [
+                     item.name || '访客',
+                     item.visit_time ? item.visit_time.slice(5, 16).replace('T', ' ') : '--',
+                     item.status === 1 ? '<span style="color:#67c23a">通过</span>' : '<span style="color:#e6a23c">待审</span>'
+                 ])
+             } else {
+                 scrollBoardConfig.data = [['暂无', '--', '--']]
+             }
+
+             initCharts(res)
+        }
+    } catch (e) {
+        console.error("Dashboard data fetch failed", e)
+    }
+}
+
+const initCharts = (data) => {
+    // 1. Pie Chart
+    if(pieChart) pieChart.dispose()
+    pieChart = echarts.init(pieChartRef.value)
+    const pieData = data.repairStats && data.repairStats.length > 0 ? data.repairStats : [{name: '无数据', value: 0}]
+    pieChart.setOption({
+        color: ['#00f2fe', '#409EFF', '#e6a23c', '#f56c6c'],
+        legend: { bottom: 0, textStyle: { color: '#fff' } },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '60%'],
+            center: ['50%', '45%'],
+            label: { color: '#fff' },
+            data: pieData
+        }]
+    })
+
+    // 2. Line Chart
+    if(lineChart) lineChart.dispose()
     lineChart = echarts.init(lineChartRef.value)
     lineChart.setOption({
         tooltip: { trigger: 'axis' },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
-        yAxis: { type: 'value' },
+        grid: { top: '15%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: data.incomeDates,
+            axisLabel: { color: '#fff' }
+        },
+        yAxis: {
+            type: 'value',
+            splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+            axisLabel: { color: '#fff' }
+        },
         series: [{
-            data: [150, 230, 224, 218, 135, 147, 260],
             type: 'line',
             smooth: true,
-            areaStyle: {},
-            itemStyle: { color: '#409EFF' }
+            lineStyle: { width: 2, color: '#00f2fe' },
+            areaStyle: { color: 'rgba(0, 242, 254, 0.3)' },
+            data: data.incomeTrend
         }]
     })
 
-    // Pie Chart
-    pieChart = echarts.init(pieChartRef.value)
-    pieChart.setOption({
-        tooltip: { trigger: 'item' },
-        legend: { top: '5%', left: 'center' },
+    // 3. Bar Chart
+    if(barChart) barChart.dispose()
+    barChart = echarts.init(barChartRef.value)
+    barChart.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { top: '20%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: ['物业', '停车', '商城'],
+            axisLabel: { color: '#fff' }
+        },
+        yAxis: {
+             type: 'value',
+             splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+             axisLabel: { color: '#fff' }
+        },
         series: [{
-            name: 'Access From',
-            type: 'pie',
-            radius: ['40%', '70%'],
-            avoidLabelOverlap: false,
-            itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-            label: { show: false, position: 'center' },
-            emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
-            labelLine: { show: false },
-            data: [
-                { value: 1048, name: '物业费' },
-                { value: 735, name: '停车费' },
-                { value: 580, name: '商城自营' },
-                { value: 484, name: '其他收入' },
-            ]
-        }]
-    })
-
-    // Bar Chart
-     barChart = echarts.init(barChartRef.value)
-     barChart.setOption({
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: [{ type: 'category', data: ['水电', '门窗', '暖气', '公共区域', '电梯', '其他'] }],
-        yAxis: [{ type: 'value' }],
-        series: [{
-            name: '报修数量',
             type: 'bar',
-            barWidth: '60%',
-            data: [10, 52, 200, 334, 390, 330],
-            itemStyle: { color: '#E6A23C' }
+            barWidth: '30%',
+            itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#00f2fe' }, { offset: 1, color: '#409EFF' }]) },
+            data: data.costStructure || [0, 0, 0]
         }]
-     })
+    })
 }
 
-// Need resize listener
 const handleResize = () => {
-    lineChart && lineChart.resize()
     pieChart && pieChart.resize()
+    lineChart && lineChart.resize()
     barChart && barChart.resize()
 }
 
@@ -197,150 +245,159 @@ onMounted(() => {
     timer = setInterval(() => {
         currentTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
     }, 1000)
-    initCharts()
+    fetchData()
     window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
     clearInterval(timer)
     window.removeEventListener('resize', handleResize)
-    lineChart && lineChart.dispose()
     pieChart && pieChart.dispose()
+    lineChart && lineChart.dispose()
     barChart && barChart.dispose()
 })
-
-const tableRowClassName = ({ rowIndex }) => {
-  if (rowIndex === 1) {
-    return 'warning-row'
-  } else if (rowIndex === 3) {
-    return 'success-row'
-  }
-  return ''
-}
 </script>
 
 <style scoped>
 .data-screen {
-    width: 100%;
-    min-height: 100vh;
-    background-color: #0b1120; /* Dark Theme */
+    width: 100vw;
+    height: 100vh;
+    background: #050a15;
     color: #fff;
-    padding: 20px;
+    overflow: hidden;
+    font-family: "Microsoft YaHei", sans-serif;
 }
 
 .screen-header {
+    height: 60px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #1f2937;
-    padding-bottom: 15px;
+    position: relative;
+    z-index: 10;
 }
-
-.header-left {
+.header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 5px;
+}
+.title-text {
+    font-size: 28px;
+    font-weight: bold;
+    color: #00f2fe;
+    margin-top: -30px;
+    text-shadow: 0 0 10px #00f2fe;
+}
+.time-text {
+    position: absolute;
+    right: 320px;
+    top: 15px;
+    color: #fff;
+    font-weight: bold;
+}
+.back-btn {
+    position: absolute;
+    left: 320px;
+    top: 15px;
+    color: #00f2fe;
     cursor: pointer;
+    font-weight: bold;
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: 14px;
-    color: #9ca3af;
 }
 
-.header-center {
-    font-size: 24px;
-    font-weight: bold;
-    background: linear-gradient(to right, #409EFF, #00f2fe);
-    -webkit-background-clip: text;
-    color: transparent;
+.screen-body {
+    height: calc(100vh - 60px);
+    padding: 10px 20px 20px 20px;
+    box-sizing: border-box;
 }
 
-.header-right {
-    font-family: monospace;
-    font-size: 16px;
-    color: #409EFF;
-}
-
-.metrics-row {
-  margin-bottom: 20px;
-}
-
-.metric-card {
-    background-color: #1f2937;
-    padding: 20px;
-    border-radius: 8px;
+.column-side, .column-center {
+    height: 100%;
     display: flex;
-    align-items: center;
-    gap: 15px;
-    transition: transform 0.3s;
+    flex-direction: column;
 }
 
-.metric-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+.tech-card {
+    position: relative;
+    box-sizing: border-box;
 }
-
-.metric-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: white;
-}
-.user-bg { background: linear-gradient(135deg, #667eea, #764ba2); }
-.order-bg { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
-.parking-bg { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
-.money-bg { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
-
-.metric-info .label {
-    color: #9ca3af;
-    font-size: 12px;
-    margin-bottom: 4px;
-}
-.metric-info .value {
-    font-size: 24px;
-    font-weight: 700;
-}
-
-.charts-row {
-    margin-bottom: 20px;
-}
-
-.chart-card {
-    background-color: #1f2937;
-    padding: 20px;
-    border-radius: 8px;
-    height: 350px;
-}
+.h-30 { height: 30%; }
+.h-35 { height: 35%; }
+.h-40 { height: 40%; }
+.h-60 { height: 60%; }
+.mt-15 { margin-top: 15px; }
+.p-20 { padding: 40px 20px 10px 20px; height: 100%; box-sizing: border-box; }
 
 .chart-title {
+    position: absolute;
+    top: 10px;
+    left: 20px;
     font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 15px;
-    border-left: 4px solid #409EFF;
+    font-weight: bold;
+    color: #fff;
     padding-left: 10px;
+    border-left: 3px solid #00f2fe;
 }
-
 .chart-container {
     width: 100%;
-    height: 300px;
+    height: 100%;
+    padding-top: 30px;
+    box-sizing: border-box;
 }
 
-/* Element UI Overrides for Dark Mode if needed, but simplistic approach here */
-:deep(.el-table) {
-    --el-table-bg-color: #1f2937;
-    --el-table-tr-bg-color: #1f2937;
-    --el-table-header-bg-color: #111827;
-    --el-table-text-color: #e5e7eb;
-    --el-table-header-text-color: #9ca3af;
-    --el-table-row-hover-bg-color: #374151;
-    --el-table-border-color: #374151;
-    background-color: transparent !important;
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 }
+.metric-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 242, 254, 0.05);
+}
+.metric-label { font-size: 14px; color: #ccc; }
+.metric-value { font-size: 24px; color: #00f2fe; font-weight: bold; }
 
-:deep(.el-table tr) {
-    background-color: #1f2937 !important;
+.center-map-box {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    padding: 2px;
 }
+.map-bg {
+    width: 100%;
+    height: 100%;
+    background-image: url('../../assets/images/cyber_city.png');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.9;
+}
+.map-title-overlay {
+    position: absolute;
+    top: 30px;
+    width: 100%;
+    text-align: center;
+    font-size: 24px;
+    color: #fff;
+    text-shadow: 0 0 10px #00f2fe;
+    z-index: 2;
+}
+.center-data {
+    position: absolute;
+    bottom: 60px;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    z-index: 2;
+}
+.c-label { font-size: 16px; color: #ccc; text-align: center; margin-bottom: 5px; }
+
 </style>

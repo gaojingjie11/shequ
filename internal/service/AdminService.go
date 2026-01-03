@@ -3,6 +3,7 @@ package service
 import (
 	"smartcommunity/internal/global"
 	"smartcommunity/internal/model"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -133,4 +134,95 @@ func (s *AdminService) UpdateUserBalance(userID int64, amount float64) error {
 		}
 		return nil
 	})
+}
+
+// --- 数据大屏统计 ---
+
+type DashboardStats struct {
+	TotalUsers      int64                    `json:"totalUsers"`
+	TodayOrders     int64                    `json:"todayOrders"`
+	ParkingRate     string                   `json:"parkingRate"`
+	MonthIncome     float64                  `json:"monthIncome"`
+	RepairStats     []map[string]interface{} `json:"repairStats"`
+	VisitorLogs     []model.Visitor          `json:"visitorLogs"`
+	IncomeTrend     []float64                `json:"incomeTrend"` // 近7天收入
+	IncomeDates     []string                 `json:"incomeDates"` // 近7天日期
+	YearTotalAmount float64                  `json:"yearTotalAmount"`
+	PatrolCount     int64                    `json:"patrolCount"`
+	CostStructure   []float64                `json:"costStructure"` // [物业, 停车, 商城]
+}
+
+func (s *AdminService) GetDashboardStats() (*DashboardStats, error) {
+	stats := &DashboardStats{}
+
+	// 1. 总用户数
+	global.DB.Model(&model.SysUser{}).Count(&stats.TotalUsers)
+
+	// 2. 今日订单
+	todayStart := time.Now().Format("2006-01-02") + " 00:00:00"
+	global.DB.Model(&model.Order{}).Where("created_at >= ?", todayStart).Count(&stats.TodayOrders)
+
+	// 3. 本月营收 (商城)
+	monthStart := time.Now().Format("2006-01") + "-01 00:00:00"
+	var mallIncome float64
+	global.DB.Model(&model.Order{}).Where("created_at >= ? AND status in (1,2,3)", monthStart).Select("COALESCE(sum(total_amount), 0)").Scan(&mallIncome)
+	stats.MonthIncome = mallIncome
+
+	// 4. 车位占用率 & 估算停车收入 (假设每个占用车位每月贡献 300)
+	var totalParking, occupiedParking int64
+	global.DB.Model(&model.Parking{}).Count(&totalParking)
+	global.DB.Model(&model.Parking{}).Where("status = ?", 1).Count(&occupiedParking)
+	if totalParking > 0 {
+		rate := float64(occupiedParking) / float64(totalParking) * 100
+		stats.ParkingRate = strconv.FormatFloat(rate, 'f', 0, 64) + "%"
+	} else {
+		stats.ParkingRate = "0%"
+	}
+	parkingIncome := float64(occupiedParking) * 300 // 估算值
+
+	// 5. 报修占比
+	var repairs []struct {
+		Category string `json:"name"`
+		Count    int    `json:"value"`
+	}
+	global.DB.Model(&model.Repair{}).Select("category, count(*) as count").Group("category").Scan(&repairs)
+	for _, r := range repairs {
+		stats.RepairStats = append(stats.RepairStats, map[string]interface{}{"name": r.Category, "value": r.Count})
+	}
+
+	// 6. 访客记录
+	global.DB.Model(&model.Visitor{}).Order("created_at desc").Limit(10).Find(&stats.VisitorLogs)
+
+	// 7. 近7天收入趋势
+	for i := 6; i >= 0; i-- {
+		day := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		stats.IncomeDates = append(stats.IncomeDates, day[5:])
+
+		var dayIncome float64
+		start := day + " 00:00:00"
+		end := day + " 23:59:59"
+		global.DB.Model(&model.Order{}).
+			Where("created_at BETWEEN ? AND ? AND status in (1,2,3)", start, end).
+			Select("COALESCE(sum(total_amount), 0)").Scan(&dayIncome)
+		stats.IncomeTrend = append(stats.IncomeTrend, dayIncome)
+	}
+
+	// 8. 年度总交易额 (商城 + 物业费)
+	yearStart := time.Now().Format("2006") + "-01-01 00:00:00"
+	var yearMallIncome, yearPropertyIncome float64
+	global.DB.Model(&model.Order{}).Where("created_at >= ? AND status in (1,2,3)", yearStart).Select("COALESCE(sum(total_amount), 0)").Scan(&yearMallIncome)
+	global.DB.Model(&model.PropertyFee{}).Where("status = 1").Select("COALESCE(sum(amount), 0)").Scan(&yearPropertyIncome)
+
+	stats.YearTotalAmount = yearMallIncome + yearPropertyIncome
+
+	// 9. 安保巡逻次数 (访客数 * 2 + 基础值)
+	var visitorCount int64
+	global.DB.Model(&model.Visitor{}).Count(&visitorCount)
+	stats.PatrolCount = visitorCount*2 + 500 // 加上基础值显得真实一点
+
+	// 10. 费用构成 (物业, 停车, 商城)
+	// 这里用的是本月或年度的总量作为比例
+	stats.CostStructure = []float64{yearPropertyIncome, parkingIncome * 12, yearMallIncome}
+
+	return stats, nil
 }

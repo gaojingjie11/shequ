@@ -30,6 +30,8 @@ func InitRouter(r *gin.Engine) {
 	{ //用户
 		apiGroup.POST("/register", userHandler.Register)
 		apiGroup.POST("/login", userHandler.Login)
+		apiGroup.POST("/send_code", userHandler.SendCode)             // 发送验证码
+		apiGroup.POST("/login_code", userHandler.LoginCode)           // 验证码登录
 		apiGroup.POST("/forget_password", userHandler.ForgetPassword) // 新增
 
 		// 商品 (通常游客也可以看商品，所以放在开放接口里)
@@ -117,6 +119,7 @@ func InitRouter(r *gin.Engine) {
 		private.GET("/favorites", favoriteHandler.List)          // 列表
 		private.GET("/favorite/check", favoriteHandler.Check)    // 检查是否收藏
 		// --- 用户个人中心 ---
+		private.POST("/logout", userHandler.Logout)                       // 退出登录 (新增)
 		private.POST("/user/update", userHandler.Update)                  // 修改头像/昵称
 		private.POST("/user/change_password", userHandler.ChangePassword) // 修改密码
 		private.GET("/user/info", userHandler.Info)                       // 获取最新信息

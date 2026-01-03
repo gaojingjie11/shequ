@@ -51,6 +51,18 @@
           </div>
         </div>
       </div>
+
+      <div class="pagination-container mt-4" v-if="total > 0">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[5, 10, 20]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -60,6 +72,7 @@ import { ref, onMounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import { createVisitor, getVisitorList } from '@/api/service'
 import dayjs from 'dayjs'
+import { ElMessage } from 'element-plus'
 
 const form = ref({
   name: '',
@@ -70,6 +83,9 @@ const form = ref({
 
 const loading = ref(false)
 const visitors = ref([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
@@ -97,11 +113,11 @@ const submitVisitor = async () => {
     }
     
     await createVisitor(submitData)
-    alert('提交成功，等待审核！')
+    ElMessage.success('提交成功，等待审核！')
     form.value = { name: '', mobile: '', reason: '', visit_time: '' }
     await fetchVisitors()
   } catch (error) {
-    alert('提交失败: ' + (error.response?.data?.msg || error.message))
+    ElMessage.error('提交失败: ' + (error.response?.data?.msg || error.message))
   } finally {
     loading.value = false
   }
@@ -109,10 +125,25 @@ const submitVisitor = async () => {
 
 const fetchVisitors = async () => {
   try {
-    visitors.value = await getVisitorList()
+    const res = await getVisitorList({
+        page: currentPage.value,
+        size: pageSize.value
+    })
+    visitors.value = res.list
+    total.value = res.total
   } catch (error) {
     console.error('获取访客记录失败:', error)
   }
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  fetchVisitors()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  fetchVisitors()
 }
 
 onMounted(() => {

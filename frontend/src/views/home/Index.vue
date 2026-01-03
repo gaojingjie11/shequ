@@ -27,6 +27,10 @@
           <div class="quick-icon">👥</div>
           <div class="quick-text">访客登记</div>
         </div>
+        <div class="quick-item" @click="$router.push('/data')">
+          <div class="quick-icon">📊</div>
+          <div class="quick-text">数据大屏</div>
+        </div>
       </div>
       
       <div class="section">

@@ -20,6 +20,18 @@
           </div>
         </div>
       </div>
+
+      <div class="pagination-container mt-4" v-if="total > 0">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[5, 10, 20]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -31,17 +43,45 @@ import { getNoticeList } from '@/api/service'
 import dayjs from 'dayjs'
 
 const notices = ref([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
 }
 
-onMounted(async () => {
+const fetchList = async () => {
   try {
-    notices.value = await getNoticeList()
+    const res = await getNoticeList({
+        page: currentPage.value,
+        size: pageSize.value
+    })
+    // Backend returns {list, total} if page param exists
+    if (res.list) {
+        notices.value = res.list
+        total.value = res.total
+    } else {
+        notices.value = res
+        total.value = res.length
+    }
   } catch (error) {
     console.error('获取公告失败:', error)
   }
+}
+
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  fetchList()
+}
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+  fetchList()
+}
+
+onMounted(() => {
+  fetchList()
 })
 </script>
 

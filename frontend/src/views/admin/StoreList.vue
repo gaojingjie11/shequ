@@ -8,31 +8,20 @@
       </div>
 
       <div class="table-container card">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>名称</th>
-              <th>地址</th>
-              <th>电话</th>
-              <th>营业时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="store in stores" :key="store.id">
-              <td>{{ store.id }}</td>
-              <td>{{ store.name }}</td>
-              <td>{{ store.address }}</td>
-              <td>{{ store.phone }}</td>
-              <td>{{ store.business_hours }}</td>
-              <td>
-                <button class="btn btn-sm btn-info" @click="openModal(store)">编辑</button>
-                <button class="btn btn-sm btn-danger ml-2" @click="handleDelete(store.id)">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <el-table :data="stores" style="width: 100%" stripe border>
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="名称" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="address" label="地址" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="phone" label="电话" width="120" />
+          <el-table-column prop="business_hours" label="营业时间" width="150" />
+          
+          <el-table-column label="操作" width="150" fixed="right">
+            <template #default="{ row }">
+              <button class="btn btn-sm btn-info" @click="openModal(row)">编辑</button>
+              <button class="btn btn-sm btn-danger ml-2" @click="handleDelete(row.id)">删除</button>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
 
       <!-- 弹窗 -->
@@ -78,6 +67,7 @@ import { ref, onMounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import request from '@/utils/request' // 没有封装store list API，这里直接调或者补充API
 import { createStore, updateStore, deleteStore } from '@/api/admin' 
+import { ElMessage, ElMessageBox } from 'element-plus' 
 
 // 临时补充 getStores，因为 api/service 里好像没暴露给admin用
 const getStores = () => {
@@ -124,21 +114,28 @@ const handleSubmit = async () => {
         } else {
             await createStore(form.value)
         }
-        alert('保存成功')
+        ElMessage.success('保存成功')
         closeModal()
         fetchStores()
     } catch (e) {
-        alert('操作失败')
+        ElMessage.error('操作失败')
     }
 }
 
 const handleDelete = async (id) => {
-    if(!confirm('确定删除?')) return
     try {
+        await ElMessageBox.confirm('确定删除?', '删除确认', {
+            confirmButtonText: '删除',
+            cancelButtonText: '取消',
+            type: 'warning'
+        })
         await deleteStore(id)
+        ElMessage.success('删除成功')
         fetchStores()
     } catch (e) {
-        alert('删除失败')
+        if (e !== 'cancel') {
+            ElMessage.error('删除失败')
+        }
     }
 }
 

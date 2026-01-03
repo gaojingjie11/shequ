@@ -70,6 +70,52 @@ func (h *UserHandler) Register(c *gin.Context) {
 	response.Success(c, gin.H{"uid": user.ID})
 }
 
+// SendCode 发送验证码
+func (h *UserHandler) SendCode(c *gin.Context) {
+	var req struct {
+		Mobile string `json:"mobile"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, "参数错误")
+		return
+	}
+	if req.Mobile == "" {
+		response.Fail(c, "手机号不能为空")
+		return
+	}
+	if err := h.Service.SendSMSCode(req.Mobile); err != nil {
+		response.Fail(c, err.Error())
+		return
+	}
+	response.Success(c, nil)
+}
+
+// LoginCode 验证码登录
+func (h *UserHandler) LoginCode(c *gin.Context) {
+	var req struct {
+		Mobile string `json:"mobile"`
+		Code   string `json:"code"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, "参数错误")
+		return
+	}
+
+	ip := c.ClientIP()
+	ua := c.Request.UserAgent()
+
+	token, user, err := h.Service.LoginByCode(req.Mobile, req.Code, ip, ua)
+	if err != nil {
+		response.Fail(c, err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{
+		"token":     token,
+		"user_info": user,
+	})
+}
+
 // Login 处理登录请求
 func (h *UserHandler) Login(c *gin.Context) {
 	var req struct {
@@ -100,6 +146,23 @@ func (h *UserHandler) Login(c *gin.Context) {
 		"token":     token,
 		"user_info": user, // 包含头像、余额等信息
 	})
+}
+
+// Logout 处理退出登录请求
+func (h *UserHandler) Logout(c *gin.Context) {
+	// 从中间件中获取 userID
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Success(c, nil) // 如果没有UserID (理论上中间件会拦截)，直接返回成功
+		return
+	}
+
+	if err := h.Service.Logout(userID.(int64)); err != nil {
+		// 即使 Redis 删除失败，也应该告诉前端退出成功，或者记录日志
+		// 这里选择忽略错误，直接返回成功，确保前端能清除状态
+	}
+
+	response.Success(c, nil)
 }
 
 // Update 修改资料

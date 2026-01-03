@@ -16,6 +16,23 @@ func (s *NoticeService) GetList(limit int) ([]model.Notice, error) {
 	return list, err
 }
 
+// GetPageList 分页获取公告
+func (s *NoticeService) GetPageList(page, size int) ([]model.Notice, int64, error) {
+	var list []model.Notice
+	var total int64
+	offset := (page - 1) * size
+
+	db := global.DB.Model(&model.Notice{})
+
+	err := db.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = db.Order("created_at desc").Offset(offset).Limit(size).Find(&list).Error
+	return list, total, err
+}
+
 // GetDetail 获取详情并增加浏览量 (可选功能)
 func (s *NoticeService) GetDetail(id int64) (*model.Notice, error) {
 	var notice model.Notice

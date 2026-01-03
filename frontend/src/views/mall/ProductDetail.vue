@@ -54,6 +54,7 @@ import { getProductDetail } from '@/api/product'
 import { addToCart as addToCartApi } from '@/api/order'
 import { addFavorite, deleteFavorite, checkFavorite } from '@/api/favorite'
 import { useCartStore } from '@/stores/cart'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,15 +72,15 @@ const addToCart = async (silent) => {
       quantity: 1
     })
     if (!silent) {
-      alert('已添加到购物车！')
+      ElMessage.success('已添加到购物车！')
     }
     cartStore.fetchCart()
   } catch (error) {
     if (error.response?.status === 401) {
-       alert('请先登录')
+       ElMessage.warning('请先登录')
        router.push('/login')
     } else {
-       alert('添加失败: ' + error.message)
+       ElMessage.error('添加失败: ' + error.message)
     }
   }
 }
@@ -97,7 +98,7 @@ const toggleFavorite = async () => {
         if (e.response?.status === 401) {
             router.push('/login')
         } else {
-            alert('操作失败')
+            ElMessage.error('操作失败')
         }
     }
 }
